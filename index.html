@@ -610,6 +610,14 @@ AK INTERIOR DESIGN
 🖼 Photos / Videos
 </button>
 
+<button onclick="adminPage('workers')">
+👷 Workers
+</button>
+
+<button onclick="adminPage('payments')">
+💰 Payments
+</button>
+
 <button onclick="signOut()">
 ↩ Public Website
 </button>
@@ -1388,6 +1396,220 @@ await publicLoad();
 
 }
 
+
+
+/* =====================================================
+   WORKERS
+===================================================== */
+
+async function workersAdmin(){
+
+const main=document.getElementById("adminMain");
+
+const {data,error}=await sb
+.from("workers")
+.select("*")
+.order("created_at",{ascending:false});
+
+if(error){
+main.innerHTML=`<div class="panel">
+<h2>Workers Error</h2>
+<p class="muted">${esc(error.message)}</p>
+</div>`;
+return;
+}
+
+main.innerHTML=`
+<div class="top">
+<div>
+<div class="tag">Manager Panel</div>
+<h1>Workers</h1>
+</div>
+<button class="btn alt" onclick="addWorker()">+ Add Worker</button>
+</div>
+
+<div class="panel">
+<table class="table">
+<tr>
+<th>Name</th>
+<th>Role</th>
+<th>Phone</th>
+<th>Status</th>
+<th>Action</th>
+</tr>
+
+${(data||[]).map(x=>`
+<tr>
+<td>${esc(x.name)}</td>
+<td>${esc(x.role)}</td>
+<td>${esc(x.phone)}</td>
+<td>${esc(x.status || "active")}</td>
+<td>
+<button class="btn light" onclick="deleteWorker('${x.id}')">
+Delete
+</button>
+</td>
+</tr>
+`).join("")}
+
+</table>
+</div>
+`;
+}
+
+async function addWorker(){
+
+const name=prompt("Worker name");
+if(!name)return;
+
+const role=prompt("Role","Carpenter") || "";
+const phone=prompt("Phone","") || "";
+
+const {error}=await sb
+.from("workers")
+.insert({
+name,
+role,
+phone,
+status:"active"
+});
+
+if(error){
+alert(error.message);
+return;
+}
+
+await workersAdmin();
+}
+
+async function deleteWorker(id){
+
+if(!confirm("Worker delete karna hai?"))return;
+
+const {error}=await sb
+.from("workers")
+.delete()
+.eq("id",id);
+
+if(error){
+alert(error.message);
+return;
+}
+
+await workersAdmin();
+}
+
+/* =====================================================
+   PAYMENTS
+===================================================== */
+
+async function paymentsAdmin(){
+
+const main=document.getElementById("adminMain");
+
+const {data,error}=await sb
+.from("worker_payments")
+.select("id,amount,payment_date,payment_method,workers(name)")
+.order("payment_date",{ascending:false});
+
+if(error){
+main.innerHTML=`<div class="panel">
+<h2>Payments Error</h2>
+<p class="muted">${esc(error.message)}</p>
+</div>`;
+return;
+}
+
+main.innerHTML=`
+<div class="top">
+<div>
+<div class="tag">Manager Panel</div>
+<h1>Worker Payments</h1>
+</div>
+<button class="btn alt" onclick="addPayment()">+ Add Payment</button>
+</div>
+
+<div class="panel">
+<table class="table">
+<tr>
+<th>Worker</th>
+<th>Amount</th>
+<th>Date</th>
+<th>Method</th>
+</tr>
+
+${(data||[]).map(x=>`
+<tr>
+<td>${esc(x.workers?.name || "")}</td>
+<td>₹${Number(x.amount || 0).toLocaleString("en-IN")}</td>
+<td>${esc(x.payment_date || "")}</td>
+<td>${esc(x.payment_method || "")}</td>
+</tr>
+`).join("")}
+
+</table>
+</div>
+`;
+}
+
+async function addPayment(){
+
+const {data:workers,error}=await sb
+.from("workers")
+.select("id,name")
+.order("name");
+
+if(error){
+alert(error.message);
+return;
+}
+
+if(!workers || workers.length===0){
+alert("Pehle Workers section me worker add karein.");
+return;
+}
+
+const workerList=workers
+.map(x=>`${x.id} - ${x.name}`)
+.join("\n");
+
+const workerId=prompt(
+"Worker ID select karein:\n\n"+workerList
+);
+
+if(!workerId)return;
+
+const amount=prompt("Payment Amount");
+if(!amount)return;
+
+const date=prompt(
+"Payment Date (YYYY-MM-DD)",
+new Date().toISOString().slice(0,10)
+);
+
+if(!date)return;
+
+const method=prompt(
+"Payment Method",
+"Cash"
+) || "Cash";
+
+const {error:insertError}=await sb
+.from("worker_payments")
+.insert({
+worker_id:workerId.trim(),
+amount:Number(amount),
+payment_date:date,
+payment_method:method
+});
+
+if(insertError){
+alert(insertError.message);
+return;
+}
+
+await paymentsAdmin();
+}
 
 /* =====================================================
    START
