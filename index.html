@@ -1581,44 +1581,100 @@ alert("Pehle Workers section me worker add karein.");
 return;
 }
 
-const workerList=workers
-.map(x=>`${x.id} - ${x.name}`)
-.join("\n");
+/* Worker ID type karne ki zarurat nahi.
+   Dropdown me worker ka naam select hoga. */
 
-const workerId=prompt(
-"Worker ID select karein:\n\n"+workerList
-);
+const options = workers
+.map(x => `<option value="${esc(x.id)}">${esc(x.name)}${x.role ? " — " + esc(x.role) : ""}</option>`)
+.join("");
 
-if(!workerId)return;
+const modal = document.createElement("div");
+modal.className = "modal";
+modal.id = "paymentModal";
 
-const amount=prompt("Payment Amount");
-if(!amount)return;
+modal.innerHTML = `
+<div class="box">
+<h2>Add Worker Payment</h2>
 
-const date=prompt(
-"Payment Date (YYYY-MM-DD)",
-new Date().toISOString().slice(0,10)
-);
+<label>Worker</label>
+<select id="paymentWorker">
+${options}
+</select>
 
-if(!date)return;
+<label>Amount</label>
+<input id="paymentAmount" type="number" min="0" placeholder="Payment amount">
 
-const method=prompt(
-"Payment Method",
-"Cash"
-) || "Cash";
+<label>Date</label>
+<input id="paymentDate" type="date"
+value="${new Date().toISOString().slice(0,10)}">
 
-const {error:insertError}=await sb
+<label>Payment Method</label>
+<select id="paymentMethod">
+<option value="Cash">Cash</option>
+<option value="UPI">UPI</option>
+<option value="Bank Transfer">Bank Transfer</option>
+<option value="Cheque">Cheque</option>
+</select>
+
+<div class="actions">
+<button class="btn light"
+onclick="document.getElementById('paymentModal').remove()">
+Cancel
+</button>
+
+<button class="btn alt"
+onclick="savePayment()">
+Save Payment
+</button>
+</div>
+
+<p id="paymentMsg" class="muted"></p>
+</div>
+`;
+
+document.body.appendChild(modal);
+}
+
+async function savePayment(){
+
+const workerId=document.getElementById("paymentWorker").value;
+const amount=document.getElementById("paymentAmount").value;
+const date=document.getElementById("paymentDate").value;
+const method=document.getElementById("paymentMethod").value;
+const msg=document.getElementById("paymentMsg");
+
+if(!workerId){
+msg.textContent="Worker select karein.";
+return;
+}
+
+if(!amount || Number(amount)<=0){
+msg.textContent="Valid payment amount dalein.";
+return;
+}
+
+if(!date){
+msg.textContent="Payment date select karein.";
+return;
+}
+
+msg.textContent="Saving...";
+
+const {error}=await sb
 .from("worker_payments")
 .insert({
-worker_id:workerId.trim(),
+worker_id:workerId,
 amount:Number(amount),
 payment_date:date,
 payment_method:method
 });
 
-if(insertError){
-alert(insertError.message);
+if(error){
+msg.textContent=error.message;
 return;
 }
+
+document.getElementById("paymentModal")?.remove();
 
 await paymentsAdmin();
 }
