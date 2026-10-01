@@ -1,0 +1,1401 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<title>AK INTERIOR DESIGN</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+:root{
+  --bg:#f6f3ee;
+  --card:#fff;
+  --text:#201e1c;
+  --muted:#777;
+  --accent:#8b5e3c;
+  --dark:#24211f;
+  --line:#e5dfd8
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  font-family:Arial,sans-serif;
+  background:var(--bg);
+  color:var(--text)
+}
+
+a{text-decoration:none;color:inherit}
+
+header{
+  background:#fff;
+  border-bottom:1px solid var(--line);
+  position:sticky;
+  top:0;
+  z-index:20
+}
+
+.nav{
+  max-width:1200px;
+  margin:auto;
+  padding:15px 20px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between
+}
+
+.logo{
+  font-weight:800;
+  letter-spacing:1px
+}
+
+.logo small{
+  display:block;
+  font-size:9px;
+  color:var(--accent);
+  letter-spacing:2px;
+  margin-top:4px
+}
+
+nav{
+  display:flex;
+  gap:18px;
+  align-items:center
+}
+
+nav a{font-size:14px}
+
+.btn{
+  border:0;
+  border-radius:8px;
+  padding:11px 16px;
+  background:var(--dark);
+  color:#fff;
+  cursor:pointer
+}
+
+.btn.alt{background:var(--accent)}
+.btn.light{background:#eee;color:#222}
+
+.hero{
+  min-height:570px;
+  background:
+    linear-gradient(90deg,#000b,#0002),
+    url("https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=1800&q=80")
+    center/cover;
+  display:flex;
+  align-items:center;
+  color:#fff
+}
+
+.hero-in{
+  max-width:1200px;
+  width:100%;
+  margin:auto;
+  padding:60px 20px
+}
+
+.eyebrow,.tag{
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:2px;
+  color:var(--accent);
+  font-weight:700
+}
+
+.hero .eyebrow{color:#ddd}
+
+.hero h1{
+  font-size:clamp(42px,7vw,78px);
+  max-width:760px;
+  margin:14px 0
+}
+
+.hero p{
+  max-width:620px;
+  font-size:18px;
+  line-height:1.6;
+  color:#eee
+}
+
+section{
+  max-width:1200px;
+  margin:auto;
+  padding:75px 20px
+}
+
+.head{
+  display:flex;
+  justify-content:space-between;
+  align-items:end;
+  margin-bottom:25px
+}
+
+.head h2{
+  margin:6px 0 0;
+  font-size:34px
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:20px
+}
+
+.card{
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:14px;
+  overflow:hidden
+}
+
+.card img,
+.card video{
+  width:100%;
+  height:240px;
+  object-fit:cover;
+  display:block
+}
+
+.body{padding:18px}
+
+.muted{
+  color:var(--muted);
+  line-height:1.6
+}
+
+.about{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:45px;
+  align-items:center
+}
+
+.about img{
+  width:100%;
+  height:420px;
+  object-fit:cover;
+  border-radius:16px
+}
+
+.checks{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px
+}
+
+.check{
+  background:#fff;
+  border:1px solid var(--line);
+  padding:13px;
+  border-radius:9px
+}
+
+.cta{
+  background:var(--dark);
+  color:#fff;
+  border-radius:18px;
+  padding:50px
+}
+
+.cta p{color:#ccc}
+
+footer{
+  background:#211f1d;
+  color:#fff;
+  padding:40px 20px
+}
+
+.footer-in{
+  max-width:1200px;
+  margin:auto;
+  display:flex;
+  justify-content:space-between
+}
+
+.footer-in p{color:#aaa}
+
+.modal{
+  position:fixed;
+  inset:0;
+  background:#0009;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  z-index:100
+}
+
+.hidden{display:none!important}
+
+.box{
+  background:#fff;
+  border-radius:14px;
+  padding:25px;
+  width:min(500px,100%)
+}
+
+input,select,textarea{
+  width:100%;
+  padding:11px;
+  border:1px solid #ddd;
+  border-radius:8px;
+  margin:6px 0 14px
+}
+
+.actions{
+  display:flex;
+  gap:8px;
+  justify-content:flex-end
+}
+
+#admin{display:none}
+
+.admin{
+  display:grid;
+  grid-template-columns:235px 1fr;
+  min-height:100vh
+}
+
+.side{
+  background:#24211f;
+  color:#fff;
+  padding:20px
+}
+
+.side button{
+  display:block;
+  width:100%;
+  text-align:left;
+  background:transparent;
+  border:0;
+  color:#ddd;
+  padding:12px;
+  border-radius:8px;
+  margin:3px 0;
+  cursor:pointer
+}
+
+.side button:hover{background:#3a3430}
+
+.main{
+  padding:30px;
+  max-width:1450px;
+  width:100%
+}
+
+.top{
+  display:flex;
+  justify-content:space-between;
+  align-items:center
+}
+
+.panel{
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:20px;
+  margin-top:18px
+}
+
+.table{
+  width:100%;
+  border-collapse:collapse
+}
+
+.table th,
+.table td{
+  padding:12px;
+  border-bottom:1px solid var(--line);
+  text-align:left;
+  font-size:14px
+}
+
+.empty{
+  text-align:center;
+  padding:25px;
+  color:#888
+}
+
+.status{
+  margin-top:10px;
+  min-height:22px
+}
+
+@media(max-width:800px){
+  nav{display:none}
+  .grid,.about{grid-template-columns:1fr}
+  .admin{grid-template-columns:1fr}
+  .footer-in{
+    flex-direction:column;
+    gap:10px
+  }
+}
+</style>
+</head>
+
+<body>
+
+<!-- ================= PUBLIC WEBSITE ================= -->
+
+<div id="site">
+
+<header>
+<div class="nav">
+
+<div class="logo">
+AK INTERIOR DESIGN
+<small>CARPENTRY • INTERIORS • CRAFT</small>
+</div>
+
+<nav>
+<a href="#home">Home</a>
+<a href="#services">Services</a>
+<a href="#projects">Projects</a>
+<a href="#gallery">Gallery</a>
+<a href="#about">About</a>
+<a href="#contact">Contact</a>
+
+<button class="btn alt" onclick="loginModal()">
+Manager Login
+</button>
+</nav>
+
+</div>
+</header>
+
+<main>
+
+<section class="hero" id="home">
+<div class="hero-in">
+
+<div class="eyebrow">AK INTERIOR DESIGN</div>
+
+<h1>
+Beautiful spaces, crafted with care.
+</h1>
+
+<p>
+Quality carpentry, custom furniture and interior work
+for homes, offices and modern spaces.
+</p>
+
+<a class="btn alt" href="#gallery">
+View Our Work
+</a>
+
+<a class="btn" href="#contact">
+Contact Us
+</a>
+
+</div>
+</section>
+
+
+<section id="services">
+
+<div class="head">
+<div>
+<div class="tag">What we do</div>
+<h2>Our Services</h2>
+</div>
+</div>
+
+<div class="grid">
+
+<div class="card">
+<img src="https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?auto=format&fit=crop&w=900&q=80">
+<div class="body">
+<div class="tag">Service</div>
+<h3>Modular Kitchen</h3>
+<p class="muted">
+Custom kitchen carpentry and storage.
+</p>
+</div>
+</div>
+
+<div class="card">
+<img src="https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=900&q=80">
+<div class="body">
+<div class="tag">Service</div>
+<h3>Wardrobe</h3>
+<p class="muted">
+Built-to-fit wardrobes and storage.
+</p>
+</div>
+</div>
+
+<div class="card">
+<img src="https://images.unsplash.com/photo-1616594039964-ae9021a400a0?auto=format&fit=crop&w=900&q=80">
+<div class="body">
+<div class="tag">Service</div>
+<h3>Bedroom Interior</h3>
+<p class="muted">
+Comfortable bedroom spaces.
+</p>
+</div>
+</div>
+
+<div class="card">
+<img src="https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=900&q=80">
+<div class="body">
+<div class="tag">Service</div>
+<h3>TV Unit</h3>
+<p class="muted">
+Custom TV panels and furniture.
+</p>
+</div>
+</div>
+
+<div class="card">
+<img src="https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=900&q=80">
+<div class="body">
+<div class="tag">Service</div>
+<h3>Wall Panel</h3>
+<p class="muted">
+Decorative wall panels.
+</p>
+</div>
+</div>
+
+<div class="card">
+<img src="https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=900&q=80">
+<div class="body">
+<div class="tag">Service</div>
+<h3>Office Interior</h3>
+<p class="muted">
+Functional office interiors.
+</p>
+</div>
+</div>
+
+</div>
+</section>
+
+
+<section id="projects">
+
+<div class="head">
+<div>
+<div class="tag">Selected work</div>
+<h2>Our Projects</h2>
+</div>
+</div>
+
+<div class="grid" id="projectsGrid">
+<div class="empty">Loading projects...</div>
+</div>
+
+</section>
+
+
+<section id="gallery">
+
+<div class="head">
+<div>
+<div class="tag">Work in pictures</div>
+<h2>Photo & Video Gallery</h2>
+</div>
+</div>
+
+<div class="grid" id="mediaGrid">
+<div class="empty">Loading gallery...</div>
+</div>
+
+</section>
+
+
+<section id="about">
+
+<div class="about">
+
+<img src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1200&q=80">
+
+<div>
+
+<div class="tag">About us</div>
+
+<h2>AK INTERIOR DESIGN</h2>
+
+<p class="muted">
+Professional carpentry and interior work with a focus on
+practical design, clean finishing and custom solutions.
+</p>
+
+<div class="checks">
+
+<div class="check">✓ Quality Work</div>
+<div class="check">✓ Custom Designs</div>
+<div class="check">✓ Skilled Work</div>
+<div class="check">✓ Professional Finishing</div>
+
+</div>
+
+</div>
+</div>
+
+</section>
+
+
+<section id="contact">
+
+<div class="cta">
+
+<div class="tag">Let's discuss</div>
+
+<h2>
+Planning your next interior project?
+</h2>
+
+<p>
+Contact AK INTERIOR DESIGN to discuss your requirements.
+</p>
+
+<a
+class="btn alt"
+href="https://wa.me/919780169518"
+target="_blank"
+>
+WhatsApp
+</a>
+
+</div>
+
+</section>
+
+</main>
+
+
+<footer>
+
+<div class="footer-in">
+
+<div>
+<b>AK INTERIOR DESIGN</b>
+<p>Quality Carpentry & Interior Work</p>
+</div>
+
+<div>
+<p>© 2026 AK INTERIOR DESIGN</p>
+</div>
+
+</div>
+
+</footer>
+
+</div>
+
+
+<!-- ================= ADMIN PANEL ================= -->
+
+<div id="admin">
+
+<div class="admin">
+
+<aside class="side">
+
+<div class="logo">
+AK INTERIOR DESIGN
+<small>MANAGER PANEL</small>
+</div>
+
+<button onclick="adminPage('dashboard')">
+🏠 Dashboard
+</button>
+
+<button onclick="adminPage('media')">
+🖼 Photos / Videos
+</button>
+
+<button onclick="signOut()">
+↩ Public Website
+</button>
+
+</aside>
+
+
+<main class="main" id="adminMain"></main>
+
+</div>
+
+</div>
+
+
+<!-- ================= LOGIN ================= -->
+
+<div class="modal hidden" id="loginBox">
+
+<div class="box">
+
+<h2>Manager Login</h2>
+
+<p class="muted">
+Manager account Supabase Authentication se login hoga.
+</p>
+
+<input
+id="email"
+type="email"
+placeholder="Manager email"
+>
+
+<input
+id="password"
+type="password"
+placeholder="Password"
+>
+
+<div class="actions">
+
+<button
+class="btn light"
+onclick="closeLogin()"
+>
+Cancel
+</button>
+
+<button
+class="btn alt"
+onclick="signIn()"
+>
+Login
+</button>
+
+</div>
+
+<p id="loginMsg" class="muted"></p>
+
+</div>
+</div>
+
+
+<script>
+
+/* =====================================================
+   SUPABASE
+===================================================== */
+
+const SUPABASE_URL =
+"https://ipdnvpmckvqnzjoyaari.supabase.co";
+
+const SUPABASE_ANON_KEY =
+"sb_publishable_A-_k1CLu80-vRrEl6e7wpg_hIEfop9h";
+
+const sb =
+supabase.createClient(
+SUPABASE_URL,
+SUPABASE_ANON_KEY
+);
+
+
+/* =====================================================
+   COMMON
+===================================================== */
+
+const esc = s =>
+String(s ?? "")
+.replace(/[&<>"']/g,m=>({
+"&":"&amp;",
+"<":"&lt;",
+">":"&gt;",
+'"':"&quot;",
+"'":"&#039;"
+}[m]));
+
+
+/* =====================================================
+   LOGIN
+===================================================== */
+
+function loginModal(){
+
+document.getElementById("loginBox")
+.classList.remove("hidden");
+
+}
+
+function closeLogin(){
+
+document.getElementById("loginBox")
+.classList.add("hidden");
+
+}
+
+
+async function signIn(){
+
+const msg =
+document.getElementById("loginMsg");
+
+msg.textContent="Logging in...";
+
+const email =
+document.getElementById("email").value.trim();
+
+const password =
+document.getElementById("password").value;
+
+if(!email || !password){
+
+msg.textContent="Email aur password enter karein.";
+
+return;
+
+}
+
+const {error} =
+await sb.auth.signInWithPassword({
+email,
+password
+});
+
+if(error){
+
+msg.textContent=error.message;
+
+return;
+
+}
+
+closeLogin();
+
+showAdmin();
+
+}
+
+
+async function signOut(){
+
+await sb.auth.signOut();
+
+document.getElementById("admin").style.display="none";
+document.getElementById("site").style.display="block";
+
+}
+
+
+/* =====================================================
+   PUBLIC GALLERY
+===================================================== */
+
+async function publicLoad(){
+
+const mediaGrid =
+document.getElementById("mediaGrid");
+
+mediaGrid.innerHTML =
+'<div class="empty">Loading gallery...</div>';
+
+const {
+data,
+error
+} =
+await sb
+.from("media")
+.select("*")
+.order("created_at",{ascending:false});
+
+if(error){
+
+console.error(error);
+
+mediaGrid.innerHTML =
+`<div class="empty">
+Gallery load nahi ho rahi.<br>
+${esc(error.message)}
+</div>`;
+
+return;
+
+}
+
+if(!data || data.length===0){
+
+mediaGrid.innerHTML =
+'<div class="empty">Abhi gallery me koi photo/video nahi hai.</div>';
+
+return;
+
+}
+
+
+mediaGrid.innerHTML =
+data.map(x=>{
+
+if(x.type==="video"){
+
+return `
+<div class="card">
+
+<video
+controls
+preload="metadata"
+src="${esc(x.url)}"
+></video>
+
+<div class="body">
+
+<div class="tag">VIDEO</div>
+
+<h3>
+${esc(x.title)}
+</h3>
+
+</div>
+
+</div>
+`;
+
+}
+
+return `
+<div class="card">
+
+<a
+href="${esc(x.url)}"
+target="_blank"
+>
+
+<img
+src="${esc(x.thumbnail_url || x.url)}"
+alt="${esc(x.title)}"
+loading="lazy"
+>
+
+</a>
+
+<div class="body">
+
+<div class="tag">PHOTO</div>
+
+<h3>
+${esc(x.title)}
+</h3>
+
+</div>
+
+</div>
+`;
+
+}).join("");
+
+}
+
+
+/* =====================================================
+   ADMIN
+===================================================== */
+
+async function showAdmin(){
+
+document.getElementById("site").style.display="none";
+document.getElementById("admin").style.display="block";
+
+adminPage("dashboard");
+
+}
+
+
+async function adminPage(page){
+
+const {
+data:{user}
+} =
+await sb.auth.getUser();
+
+if(!user){
+
+signOut();
+
+return;
+
+}
+
+if(page==="dashboard"){
+
+document.getElementById("adminMain").innerHTML = `
+
+<div class="top">
+
+<div>
+
+<div class="tag">
+Management Panel
+</div>
+
+<h1>Dashboard</h1>
+
+</div>
+
+<button
+class="btn alt"
+onclick="adminPage('media')"
+>
+Manage Gallery
+</button>
+
+</div>
+
+<div class="panel">
+
+<h2>AK INTERIOR DESIGN</h2>
+
+<p class="muted">
+Manager panel successfully connected to Supabase.
+</p>
+
+<p>
+Logged in as:
+<strong>${esc(user.email)}</strong>
+</p>
+
+</div>
+
+`;
+
+}
+
+if(page==="media"){
+
+await mediaAdmin();
+
+}
+
+}
+
+
+/* =====================================================
+   MEDIA ADMIN
+===================================================== */
+
+async function mediaAdmin(){
+
+const main =
+document.getElementById("adminMain");
+
+const {
+data,
+error
+} =
+await sb
+.from("media")
+.select("*")
+.order("created_at",{ascending:false});
+
+if(error){
+
+main.innerHTML =
+`<div class="panel">
+<h2>Gallery Error</h2>
+<p class="muted">${esc(error.message)}</p>
+</div>`;
+
+return;
+
+}
+
+
+main.innerHTML = `
+
+<div class="top">
+
+<div>
+
+<div class="tag">
+Manager Panel
+</div>
+
+<h1>Photos / Videos</h1>
+
+</div>
+
+<button
+class="btn light"
+onclick="signOut()"
+>
+Logout
+</button>
+
+</div>
+
+
+<div class="panel">
+
+<h3>Upload new media</h3>
+
+<p class="muted">
+Photo/video select karke directly Supabase Storage
+ke <b>ak-media</b> bucket me upload karein.
+</p>
+
+
+<input
+id="mediaTitle"
+placeholder="Title e.g. Bed Design"
+>
+
+
+<select id="mediaType">
+
+<option value="photo">
+Photo
+</option>
+
+<option value="video">
+Video
+</option>
+
+</select>
+
+
+<input
+id="mediaFile"
+type="file"
+accept="image/*,video/*"
+>
+
+
+<button
+class="btn alt"
+onclick="uploadMediaFile()"
+>
+Upload File
+</button>
+
+
+<p
+id="uploadStatus"
+class="status muted"
+></p>
+
+</div>
+
+
+<div class="panel">
+
+<h3>Gallery Records</h3>
+
+<table class="table">
+
+<tr>
+<th>Title</th>
+<th>Type</th>
+<th>Preview</th>
+<th>Action</th>
+</tr>
+
+${
+(data||[]).map(x=>`
+
+<tr>
+
+<td>
+${esc(x.title)}
+</td>
+
+<td>
+${esc(x.type)}
+</td>
+
+<td>
+
+<a
+href="${esc(x.url)}"
+target="_blank"
+>
+Open
+</a>
+
+</td>
+
+<td>
+
+<button
+class="btn light"
+onclick="deleteMedia('${x.id}','${esc(x.url)}')"
+>
+Delete
+</button>
+
+</td>
+
+</tr>
+
+`).join("")
+}
+
+</table>
+
+</div>
+
+`;
+
+}
+
+
+/* =====================================================
+   UPLOAD
+===================================================== */
+
+async function uploadMediaFile(){
+
+const file =
+document.getElementById("mediaFile")
+.files[0];
+
+const title =
+document.getElementById("mediaTitle")
+.value.trim()
+||
+(file?.name || "Untitled");
+
+const type =
+document.getElementById("mediaType").value;
+
+const status =
+document.getElementById("uploadStatus");
+
+
+if(!file){
+
+status.textContent =
+"Pehle photo/video select karein.";
+
+return;
+
+}
+
+
+/* 50 MB */
+
+const max =
+50 * 1024 * 1024;
+
+if(file.size > max){
+
+status.textContent =
+"File 50MB se chhoti honi chahiye.";
+
+return;
+
+}
+
+
+/* MIME CHECK */
+
+if(type==="photo" &&
+!file.type.startsWith("image/")){
+
+status.textContent =
+"Photo ke liye image file select karein.";
+
+return;
+
+}
+
+if(type==="video" &&
+!file.type.startsWith("video/")){
+
+status.textContent =
+"Video ke liye video file select karein.";
+
+return;
+
+}
+
+
+status.textContent =
+"Uploading...";
+
+
+/* SAFE FILE NAME */
+
+const safe =
+file.name
+.toLowerCase()
+.replace(/[^a-z0-9._-]/g,"-");
+
+
+/* UNIQUE PATH */
+
+const path =
+`${new Date().getFullYear()}/${crypto.randomUUID()}-${safe}`;
+
+
+/* STORAGE UPLOAD */
+
+const {
+error:upErr
+} =
+await sb.storage
+.from("ak-media")
+.upload(
+path,
+file,
+{
+upsert:false,
+contentType:file.type
+}
+);
+
+
+if(upErr){
+
+console.error(upErr);
+
+status.textContent =
+upErr.message;
+
+return;
+
+}
+
+
+/* PUBLIC URL */
+
+const {
+data:pub
+} =
+sb.storage
+.from("ak-media")
+.getPublicUrl(path);
+
+const url =
+pub.publicUrl;
+
+
+/* DATABASE RECORD */
+
+const {
+error:dbErr
+} =
+await sb
+.from("media")
+.insert({
+
+type:type,
+
+title:title,
+
+url:url,
+
+thumbnail_url:
+type==="photo"
+? url
+: null
+
+});
+
+
+/* IF DATABASE INSERT FAILS,
+   REMOVE STORAGE FILE */
+
+if(dbErr){
+
+console.error(dbErr);
+
+await sb.storage
+.from("ak-media")
+.remove([path]);
+
+status.textContent =
+dbErr.message;
+
+return;
+
+}
+
+
+status.textContent =
+"Upload complete! Website gallery update ho gayi.";
+
+document.getElementById("mediaTitle").value="";
+document.getElementById("mediaFile").value="";
+
+await mediaAdmin();
+
+await publicLoad();
+
+}
+
+
+/* =====================================================
+   DELETE MEDIA
+===================================================== */
+
+async function deleteMedia(id,url){
+
+if(!confirm(
+"Is photo/video ko delete karna hai?"
+)) return;
+
+
+/* DATABASE DELETE */
+
+const {
+error
+} =
+await sb
+.from("media")
+.delete()
+.eq("id",id);
+
+if(error){
+
+alert(error.message);
+
+return;
+
+}
+
+
+/* STORAGE FILE DELETE */
+
+try{
+
+const marker =
+"/storage/v1/object/public/ak-media/";
+
+const i =
+url.indexOf(marker);
+
+if(i>=0){
+
+const path =
+decodeURIComponent(
+url.substring(i+marker.length)
+);
+
+await sb.storage
+.from("ak-media")
+.remove([path]);
+
+}
+
+}catch(e){
+
+console.error(e);
+
+}
+
+
+await mediaAdmin();
+
+await publicLoad();
+
+}
+
+
+/* =====================================================
+   START
+===================================================== */
+
+publicLoad();
+
+</script>
+
+</body>
+</html>
