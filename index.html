@@ -14,6 +14,9 @@
 {"@context":"https://schema.org","@type":"LocalBusiness","name":"AK INTERIOR DESIGN","url":"https://akashsharm-com.github.io/ak-interior-design/","telephone":"+91-8899776641","areaServed":["Moga","Punjab"],"address":{"@type":"PostalAddress","addressLocality":"Moga","addressRegion":"Punjab","addressCountry":"IN"},"serviceType":["Interior Designer","Carpenter","Modular Kitchen","Wardrobe","Furniture","Carpentry Work","Interior Work"]}
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <style>
 :root{--bg:#f7f3eb;--card:#fffdf8;--text:#191817;--muted:#77716a;--accent:#e8ad3d;--gold:#ffc85a;--dark:#080a0c;--line:#e7ddcc;--cream:#f8f2e8}
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}a{text-decoration:none;color:inherit}button{font:inherit}
@@ -46,157 +49,58 @@ footer{background:#080a0c;color:#fff;padding:34px 24px;border-top:3px solid #dca
 
 <div id="admin"><div class="admin"><aside class="side"><div class="logo">AK INTERIOR DESIGN<small>MANAGER PANEL</small></div><button onclick="adminPage('dashboard')">🏠 Dashboard</button><button onclick="adminPage('projects')">📁 Projects</button><button onclick="adminPage('media')">🖼 Photos / Videos</button><button onclick="adminPage('workers')">👷 Workers</button><button onclick="adminPage('payments')">💰 Payments</button><button onclick="signOut()">↩ Public Website</button></aside><main class="main" id="adminMain"></main></div></div>
 
-<div class="modal hidden" id="loginBox"><div class="box"><h2>Manager Login</h2><p class="muted">Supabase Manager account se login karein.</p><input id="email" type="email" placeholder="Manager email"><input id="password" type="password" placeholder="Password"><div class="actions"><button class="btn light" onclick="closeLogin()">Cancel</button><button class="btn alt" onclick="signIn()">Login</button></div><p id="loginMsg" class="muted"></p></div></div>
+<div class="modal hidden" id="loginBox"><div class="box"><h2>Manager Login</h2><p class="muted">Firebase Manager account se login karein.</p><input id="email" type="email" placeholder="Manager email"><input id="password" type="password" placeholder="Password"><div class="actions"><button class="btn light" onclick="closeLogin()">Cancel</button><button class="btn alt" onclick="signIn()">Login</button></div><p id="loginMsg" class="muted"></p></div></div>
 
 <script>
-const SUPABASE_URL="https://ipdnvpmckvqnzjoyaari.supabase.co";
-const SUPABASE_ANON_KEY="sb_publishable_A-_k1CLu80-vRrEl6e7wpg_hIEfop9h";
-const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-
+// Firebase client config (public web config; security is enforced by Firestore Rules)
+const firebaseConfig={apiKey:"AIzaSyB8IFY8w4QCJimSQuzBHaQ8ZYy9y3n8Mig",authDomain:"ak-interior-website.firebaseapp.com",projectId:"ak-interior-website",storageBucket:"ak-interior-website.firebasestorage.app",messagingSenderId:"507888129577",appId:"1:507888129577:web:76a35c87c0d3888559ae38",measurementId:"G-XM5R9SY2NY"};
+firebase.initializeApp(firebaseConfig);
+const auth=firebase.auth(), db=firebase.firestore();
+// Cloudinary unsigned upload preset. Never put API Secret in browser code.
+const CLOUDINARY_CLOUD_NAME="h5lsxybm", CLOUDINARY_UPLOAD_PRESET="ak_interior_design";
+// Legacy Supabase is kept READ-ONLY temporarily so existing gallery/projects are not lost during migration.
+const LEGACY_SUPABASE_URL="https://ipdnvpmckvqnzjoyaari.supabase.co", LEGACY_SUPABASE_KEY="sb_publishable_A-_k1CLu80-vRrEl6e7wpg_hIEfop9h";
+const legacy=supabase.createClient(LEGACY_SUPABASE_URL,LEGACY_SUPABASE_KEY);
 const demo=[
 ["Modular Kitchen","Custom kitchen carpentry and storage.","https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?auto=format&fit=crop&w=900&q=80"],
 ["Wardrobe","Built-to-fit wardrobes and storage.","https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=900&q=80"],
 ["Bedroom Interior","Comfortable bedroom spaces.","https://images.unsplash.com/photo-1616594039964-ae9021a400a0?auto=format&fit=crop&w=900&q=80"],
 ["TV Unit","Custom TV panels and furniture.","https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=900&q=80"],
 ["Wall Panel","Decorative wall panels.","https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=900&q=80"],
-["Office Interior","Functional office interiors.","https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=900&q=80"]
-];
-
+["Office Interior","Functional office interiors.","https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=900&q=80"]];
 const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
-
-function loginModal(){loginBox.classList.remove("hidden");loginMsg.textContent=""}
-function closeLogin(){loginBox.classList.add("hidden")}
-async function signIn(){
-  loginMsg.textContent="Logging in...";
-  const {data,error}=await sb.auth.signInWithPassword({email:email.value.trim(),password:password.value});
-  if(error){loginMsg.textContent=error.message;return}
-  closeLogin();showAdmin();
-}
-async function signOut(){
-  await sb.auth.signOut();
-  document.getElementById("admin").style.display="none";
-  document.getElementById("site").style.display="block";
-  location.hash="#home";
-  publicLoad();
-}
-function serviceCard(x){
-  return `<div class="card"><img src="${esc(x.image_url||"https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?auto=format&fit=crop&w=900&q=80")}"><div class="body"><div class="tag">Service</div><h3>${esc(x.name)}</h3><p class="muted">${esc(x.description||"Interior and carpentry service.")}</p></div></div>`;
-}
-function projectCard(x){
-  return `<div class="card">${x.cover_image?`<img src="${esc(x.cover_image)}">`:""}<div class="body"><div class="tag">${esc(x.work_type||"Project")}</div><h3>${esc(x.name||"Project")}</h3><p class="muted">${esc(x.location||"Moga, Punjab")}</p></div></div>`;
-}
+const col=name=>db.collection(name);
+function loginModal(){loginBox.classList.remove("hidden");loginMsg.textContent=""} function closeLogin(){loginBox.classList.add("hidden")}
+async function isManager(user){if(!user)return false;const d=await col('admins').doc(user.uid).get();return d.exists && d.data().active===true;}
+async function signIn(){loginMsg.textContent="Logging in...";try{const cred=await auth.signInWithEmailAndPassword(email.value.trim(),password.value);if(!await isManager(cred.user)){await auth.signOut();loginMsg.textContent="Is account ko Manager access nahi mila. Firebase Firestore mein admins/USER_UID document check karein.";return;}closeLogin();showAdmin();}catch(e){loginMsg.textContent=e.message;}}
+async function signOut(){await auth.signOut();document.getElementById("admin").style.display="none";document.getElementById("site").style.display="block";location.hash="#home";publicLoad();}
+function serviceCard(x){return `<div class="card"><img src="${esc(x.image_url||x.imageUrl||"https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?auto=format&fit=crop&w=900&q=80")}"><div class="body"><div class="tag">Service</div><h3>${esc(x.name)}</h3><p class="muted">${esc(x.description||"Interior and carpentry service.")}</p></div></div>`}
+function projectCard(x){return `<div class="card">${x.cover_image||x.coverImage?`<img src="${esc(x.cover_image||x.coverImage)}">`:""}<div class="body"><div class="tag">${esc(x.work_type||x.workType||"Project")}</div><h3>${esc(x.name||"Project")}</h3><p class="muted">${esc(x.location||"Moga, Punjab")}</p></div></div>`}
+async function getDocs(name,publicOnly=false){let q=col(name);if(publicOnly)q=q.where('visible','==',true);const snap=await q.get();return snap.docs.map(d=>({id:d.id,...d.data()}));}
 async function publicLoad(){
-  servicesGrid.innerHTML=demo.map(x=>serviceCard({name:x[0],description:x[1],image_url:x[2]})).join("");
-  projectsGrid.innerHTML='<div class="empty">Loading projects...</div>';
-  completedGrid.innerHTML='<div class="empty">Loading completed projects...</div>';
-  mediaGrid.innerHTML='<div class="empty">Loading gallery...</div>';
-
-  const {data:p,error:pe}=await sb.from("projects").select("*").order("created_at",{ascending:false});
-  if(pe){projectsGrid.innerHTML=`<div class="empty">${esc(pe.message)}</div>`;completedGrid.innerHTML=`<div class="empty">${esc(pe.message)}</div>`}
-  else{
-    const active=(p||[]).filter(x=>String(x.status||"").toLowerCase()!=="completed");
-    const done=(p||[]).filter(x=>String(x.status||"").toLowerCase()==="completed");
-    projectsGrid.innerHTML=active.length?active.map(projectCard).join(""):'<div class="empty">Abhi projects add nahi hue.</div>';
-    completedGrid.innerHTML=done.length?done.map(projectCard).join(""):'<div class="empty">Abhi completed projects add nahi hue.</div>';
-  }
-
-  const {data:m,error:me}=await sb.from("media").select("*").order("created_at",{ascending:false});
-  if(me){mediaGrid.innerHTML=`<div class="empty">${esc(me.message)}</div>`}
-  else if(!m||!m.length){mediaGrid.innerHTML='<div class="empty">Abhi gallery me koi photo/video nahi hai.</div>'}
-  else{
-    mediaGrid.innerHTML=m.map(x=>x.type==="video"
-      ?`<div class="card"><video controls preload="metadata" src="${esc(x.url)}"></video><div class="body"><div class="tag">VIDEO</div><h3>${esc(x.title)}</h3></div></div>`
-      :`<div class="card"><a href="${esc(x.url)}" target="_blank"><img src="${esc(x.thumbnail_url||x.url)}" alt="${esc(x.title)}" loading="lazy"></a><div class="body"><div class="tag">PHOTO</div><h3>${esc(x.title)}</h3></div></div>`
-    ).join("");
-  }
-}
-
-async function showAdmin(){
-  site.style.display="none";admin.style.display="block";adminPage("dashboard");
-}
-async function adminPage(page){
-  const {data:{user}}=await sb.auth.getUser();
-  if(!user){signOut();return}
-  if(page==="dashboard")return dashboardAdmin();
-  if(page==="projects")return projectsAdmin();
-  if(page==="media")return mediaAdmin();
-  if(page==="workers")return workersAdmin();
-  if(page==="payments")return paymentsAdmin();
-}
-async function dashboardAdmin(){
-  adminMain.innerHTML=`<div class="top"><div><div class="tag">Management Panel</div><h1>Dashboard</h1></div></div>
-  <div class="stats"><div class="stat">Website<b>✓</b></div><div class="stat">Supabase<b>✓</b></div><div class="stat">Moga SEO<b>✓</b></div><div class="stat">Manager<b>✓</b></div></div>
-  <div class="panel"><h2>AK INTERIOR DESIGN</h2><p class="muted">Manager panel connected. Use the left menu to manage projects, gallery, workers and payments.</p></div>`;
-}
-async function projectsAdmin(){
-  const {data,error}=await sb.from("projects").select("*").order("created_at",{ascending:false});
-  adminMain.innerHTML=`<div class="top"><h1>Projects</h1><button class="btn alt" onclick="projectForm()">+ Add Project</button></div>
-  <div class="panel">${error?`<p>${esc(error.message)}</p>`:`
-  <table class="table"><tr><th>Name</th><th>Type</th><th>Location</th><th>Status</th><th>Action</th></tr>
-  ${(data||[]).map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.work_type||"")}</td><td>${esc(x.location||"")}</td><td>${esc(x.status||"")}</td><td><button class="btn light" onclick="deleteProject('${x.id}')">Delete</button></td></tr>`).join("")||'<tr><td colspan="5" class="empty">No projects</td></tr>'}</table>`}</div>`;
-}
-function projectForm(){
-  adminMain.innerHTML=`<div class="top"><h1>Add Project</h1><button class="btn light" onclick="adminPage('projects')">Back</button></div>
-  <div class="panel"><input id="pn" placeholder="Project name"><input id="pt" placeholder="Work type e.g. Modular Kitchen"><input id="pl" placeholder="Location e.g. Moga"><input id="pc" placeholder="Cover image URL"><select id="ps"><option value="active">Active</option><option value="completed">Completed</option></select><button class="btn alt" onclick="saveProject()">Save Project</button><p id="projectMsg" class="status"></p></div>`;
-}
-async function saveProject(){
-  projectMsg.textContent="Saving...";
-  const {error}=await sb.from("projects").insert({name:pn.value,work_type:pt.value,location:pl.value,cover_image:pc.value,status:ps.value});
-  projectMsg.textContent=error?error.message:"Project saved.";
-  if(!error)adminPage("projects");
-}
-async function deleteProject(id){if(!confirm("Delete this project?"))return;const {error}=await sb.from("projects").delete().eq("id",id);if(error)alert(error.message);adminPage("projects")}
-
-async function mediaAdmin(){
-  const {data,error}=await sb.from("media").select("*").order("created_at",{ascending:false});
-  adminMain.innerHTML=`<div class="top"><h1>Photos / Videos</h1></div>
-  <div class="panel"><h3>Upload new media</h3><input id="mediaTitle" placeholder="Title"><select id="mediaType"><option value="photo">Photo</option><option value="video">Video</option></select><input id="mediaFile" type="file" accept="image/*,video/*"><button class="btn alt" onclick="uploadMedia()">Upload</button><p id="mediaMsg" class="status"></p></div>
-  <div class="panel">${error?`<p>${esc(error.message)}</p>`:`<table class="table"><tr><th>Title</th><th>Type</th><th>Action</th></tr>${(data||[]).map(x=>`<tr><td>${esc(x.title)}</td><td>${esc(x.type)}</td><td><button class="btn light" onclick="deleteMedia('${x.id}','${esc(x.url)}')">Delete</button></td></tr>`).join("")||'<tr><td colspan="3" class="empty">No media</td></tr>'}</table>`}</div>`;
-}
-async function uploadMedia(){
-  const f=mediaFile.files[0];if(!f){mediaMsg.textContent="File select karein.";return}
-  mediaMsg.textContent="Uploading...";
-  const path=`${Date.now()}_${f.name.replace(/[^a-zA-Z0-9._-]/g,"_")}`;
-  const up=await sb.storage.from("ak-media").upload(path,f,{upsert:false});
-  if(up.error){mediaMsg.textContent=up.error.message;return}
-  const {data:urlData}=sb.storage.from("ak-media").getPublicUrl(path);
-  const {error}=await sb.from("media").insert({type:mediaType.value,url:urlData.publicUrl,thumbnail_url:mediaType.value==="photo"?urlData.publicUrl:null,title:mediaTitle.value||f.name});
-  mediaMsg.textContent=error?error.message:"Upload successful.";
-  if(!error)mediaAdmin();
-}
-async function deleteMedia(id,url){
-  if(!confirm("Delete this media?"))return;
-  const marker="/storage/v1/object/public/ak-media/";
-  const i=String(url||"").indexOf(marker);
-  if(i>=0)await sb.storage.from("ak-media").remove([decodeURIComponent(String(url).slice(i+marker.length))]);
-  await sb.from("media").delete().eq("id",id);mediaAdmin();
-}
-
-async function workersAdmin(){
-  const {data,error}=await sb.from("workers").select("*").order("created_at",{ascending:false});
-  adminMain.innerHTML=`<div class="top"><h1>Workers</h1></div><div class="panel"><input id="wn" placeholder="Worker name"><input id="wr" placeholder="Role"><input id="wp" placeholder="Phone"><button class="btn alt" onclick="addWorker()">Add Worker</button><p id="workerMsg" class="status"></p></div>
-  <div class="panel">${error?`<p>${esc(error.message)}</p>`:`<table class="table"><tr><th>Name</th><th>Role</th><th>Phone</th><th>Action</th></tr>${(data||[]).map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.role)}</td><td>${esc(x.phone)}</td><td><button class="btn light" onclick="deleteWorker('${x.id}')">Delete</button></td></tr>`).join("")||'<tr><td colspan="4" class="empty">No workers</td></tr>'}</table>`}</div>`;
-}
-async function addWorker(){const {error}=await sb.from("workers").insert({name:wn.value,role:wr.value,phone:wp.value});if(error)workerMsg.textContent=error.message;else workersAdmin()}
-async function deleteWorker(id){if(!confirm("Delete worker?"))return;const {error}=await sb.from("workers").delete().eq("id",id);if(error)alert(error.message);workersAdmin()}
-
-async function paymentsAdmin(){
-  const [{data:workers,error:we},{data:payments,error:pe}]=await Promise.all([
-    sb.from("workers").select("*").order("name"),
-    sb.from("worker_payments").select("*,workers(name)").order("payment_date",{ascending:false})
-  ]);
-  const opts=(workers||[]).map(w=>`<option value="${w.id}">${esc(w.name)}${w.role?" — "+esc(w.role):""}</option>`).join("");
-  adminMain.innerHTML=`<div class="top"><h1>Payments</h1></div><div class="panel"><select id="payWorker"><option value="">Select Worker</option>${opts}</select><input id="payAmount" type="number" min="0" placeholder="Amount"><input id="payDate" type="date"><select id="payMethod"><option>Cash</option><option>UPI</option><option>Bank Transfer</option></select><button class="btn alt" onclick="addPayment()">Add Payment</button><p id="payMsg" class="status">${we?esc(we.message):pe?esc(pe.message):""}</p></div>
-  <div class="panel"><table class="table"><tr><th>Worker</th><th>Amount</th><th>Date</th><th>Method</th><th>Action</th></tr>${(payments||[]).map(x=>`<tr><td>${esc(x.workers?.name||"Unknown")}</td><td>₹${esc(x.amount)}</td><td>${esc(x.payment_date)}</td><td>${esc(x.payment_method)}</td><td><button class="btn light" onclick="deletePayment('${x.id}')">Delete</button></td></tr>`).join("")||'<tr><td colspan="5" class="empty">No payments</td></tr>'}</table></div>`;
-}
-async function addPayment(){
-  if(!payWorker.value||!payAmount.value){payMsg.textContent="Worker aur amount select karein.";return}
-  const {error}=await sb.from("worker_payments").insert({worker_id:payWorker.value,amount:Number(payAmount.value),payment_date:payDate.value||new Date().toISOString().slice(0,10),payment_method:payMethod.value});
-  if(error)payMsg.textContent=error.message;else paymentsAdmin();
-}
-async function deletePayment(id){if(!confirm("Delete payment?"))return;const {error}=await sb.from("worker_payments").delete().eq("id",id);if(error)alert(error.message);paymentsAdmin()}
-
-sb.auth.getSession().then(({data:{session}})=>{if(session)showAdmin();else publicLoad()});
+ servicesGrid.innerHTML=demo.map(x=>serviceCard({name:x[0],description:x[1],image_url:x[2]})).join("");projectsGrid.innerHTML='<div class="empty">Loading projects...</div>';completedGrid.innerHTML='<div class="empty">Loading completed projects...</div>';mediaGrid.innerHTML='<div class="empty">Loading gallery...</div>';
+ try{const [sv,pr,me]=await Promise.all([getDocs('services',true),getDocs('projects',true),getDocs('media',true)]);if(sv.length)servicesGrid.innerHTML=sv.map(serviceCard).join('');const active=pr.filter(x=>String(x.status||'').toLowerCase()!=='completed'),done=pr.filter(x=>String(x.status||'').toLowerCase()==='completed');projectsGrid.innerHTML=active.length?active.map(projectCard).join(''):'<div class="empty">Abhi projects add nahi hue.</div>';completedGrid.innerHTML=done.length?done.map(projectCard).join(''):'<div class="empty">Abhi completed projects nahi hain.</div>';let media=me;
+ // Temporarily merge old public Supabase media so existing uploads remain visible while you migrate them.
+ try{const {data:old}=await legacy.from('media').select('*').order('created_at',{ascending:false});media=[...media,...(old||[]).map(x=>({...x,legacy:true}))];}catch(e){console.warn('Legacy media read skipped',e)}
+ mediaGrid.innerHTML=media.length?media.map(x=>x.type==='video'?`<div class="card"><video controls preload="metadata" src="${esc(x.url)}"></video><div class="body"><div class="tag">VIDEO</div><h3>${esc(x.title)}</h3></div></div>`:`<div class="card"><a href="${esc(x.url||x.image_url)}" target="_blank" rel="noopener"><img src="${esc(x.thumbnail_url||x.url||x.image_url)}" alt="${esc(x.title)}" loading="lazy"></a><div class="body"><div class="tag">PHOTO</div><h3>${esc(x.title)}</h3></div></div>`).join(''):'<div class="empty">Abhi gallery me koi photo/video nahi hai.</div>';
+ }catch(e){projectsGrid.innerHTML='<div class="empty">Website data load nahi hua. Firestore Rules aur published records check karein.</div>';completedGrid.innerHTML='';mediaGrid.innerHTML='';console.error(e)} }
+async function showAdmin(){site.style.display="none";admin.style.display="block";adminPage('dashboard')}
+async function adminPage(page){const user=auth.currentUser;if(!user||!await isManager(user)){await signOut();return}if(page==='dashboard')return dashboardAdmin();if(page==='projects')return projectsAdmin();if(page==='media')return mediaAdmin();if(page==='workers')return workersAdmin();if(page==='payments')return paymentsAdmin();}
+async function dashboardAdmin(){let p=0,m=0,w=0;try{[p,m,w]=await Promise.all([col('projects').get().then(s=>s.size),col('media').get().then(s=>s.size),col('workers').get().then(s=>s.size)])}catch(e){}adminMain.innerHTML=`<div class="top"><div><div class="tag">Management Panel</div><h1>Dashboard</h1></div></div><div class="stats"><div class="stat">Website<b>✓</b></div><div class="stat">Firebase<b>✓</b></div><div class="stat">Cloudinary<b>✓</b></div><div class="stat">Projects<b>${p}</b></div></div><div class="panel"><h2>AK INTERIOR DESIGN</h2><p class="muted">Firebase Manager Panel. Projects, gallery, workers aur payments yahan manage karein.</p></div>`}
+async function projectsAdmin(){try{const data=await getDocs('projects');adminMain.innerHTML=`<div class="top"><h1>Projects</h1><button class="btn alt" onclick="projectForm()">+ Add Project</button></div><div class="panel"><table class="table"><tr><th>Name</th><th>Type</th><th>Location</th><th>Status</th><th>Action</th></tr>${data.map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.work_type||'')}</td><td>${esc(x.location||'')}</td><td>${esc(x.status||'')}</td><td><button class="btn light" onclick="deleteProject('${x.id}')">Delete</button></td></tr>`).join('')||'<tr><td colspan="5" class="empty">No projects</td></tr>'}</table></div>`}catch(e){adminMain.innerHTML=`<div class="panel">${esc(e.message)}</div>`}}
+function projectForm(){adminMain.innerHTML=`<div class="top"><h1>Add Project</h1><button class="btn light" onclick="adminPage('projects')">Back</button></div><div class="panel"><input id="pn" placeholder="Project name"><input id="pt" placeholder="Work type e.g. Modular Kitchen"><input id="pl" placeholder="Location e.g. Moga"><input id="pc" placeholder="Cover image URL (optional)"><select id="ps"><option value="active">Active</option><option value="completed">Completed</option></select><label><input id="pvis" type="checkbox" checked> Show on public website</label><button class="btn alt" onclick="saveProject()">Save Project</button><p id="projectMsg" class="status"></p></div>`}
+async function saveProject(){try{await col('projects').add({name:pn.value.trim(),work_type:pt.value.trim(),location:pl.value.trim(),cover_image:pc.value.trim(),status:ps.value,visible:pvis.checked,createdAt:firebase.firestore.FieldValue.serverTimestamp()});adminPage('projects')}catch(e){projectMsg.textContent=e.message}}
+async function deleteProject(id){if(!confirm('Delete this project?'))return;try{await col('projects').doc(id).delete();adminPage('projects')}catch(e){alert(e.message)}}
+async function mediaAdmin(){try{const data=await getDocs('media');adminMain.innerHTML=`<div class="top"><h1>Photos / Videos</h1></div><div class="panel"><h3>Upload new media</h3><input id="mediaTitle" placeholder="Title"><select id="mediaType"><option value="photo">Photo</option><option value="video">Video</option></select><input id="mediaFile" type="file" accept="image/*,video/*"><label><input id="mvis" type="checkbox" checked> Show on public website</label><button class="btn alt" onclick="uploadMedia()">Upload</button><p id="mediaMsg" class="status"></p></div><div class="panel"><table class="table"><tr><th>Title</th><th>Type</th><th>Action</th></tr>${data.map(x=>`<tr><td>${esc(x.title)}</td><td>${esc(x.type)}</td><td><button class="btn light" onclick="deleteMedia('${x.id}')">Delete</button></td></tr>`).join('')||'<tr><td colspan="3" class="empty">No new Firebase media</td></tr>'}</table></div>`}catch(e){adminMain.innerHTML=`<div class="panel">${esc(e.message)}</div>`}}
+async function uploadMedia(){const f=mediaFile.files[0];if(!f){mediaMsg.textContent='File select karein.';return}if(f.size>100*1024*1024){mediaMsg.textContent='File 100 MB se chhoti honi chahiye.';return}mediaMsg.textContent='Cloudinary par upload ho raha hai...';try{const resource=f.type.startsWith('video/')?'video':'image';const form=new FormData();form.append('file',f);form.append('upload_preset',CLOUDINARY_UPLOAD_PRESET);form.append('folder','ak-interior-design');const res=await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${resource}/upload`,{method:'POST',body:form});const out=await res.json();if(!res.ok)throw new Error(out.error?.message||'Cloudinary upload failed');await col('media').add({title:mediaTitle.value.trim()||f.name,type:resource==='video'?'video':'photo',url:out.secure_url,thumbnail_url:resource==='image'?out.secure_url:out.secure_url,publicId:out.public_id,visible:mvis.checked,createdAt:firebase.firestore.FieldValue.serverTimestamp()});mediaMsg.textContent='Upload successful!';await mediaAdmin()}catch(e){mediaMsg.textContent=e.message}}
+async function deleteMedia(id){if(!confirm('Firestore se media record delete karein? Cloudinary file alag se reh sakti hai.'))return;try{await col('media').doc(id).delete();mediaAdmin()}catch(e){alert(e.message)}}
+async function workersAdmin(){try{const data=await getDocs('workers');adminMain.innerHTML=`<div class="top"><h1>Workers</h1></div><div class="panel"><input id="wn" placeholder="Worker name"><input id="wr" placeholder="Role"><input id="wp" placeholder="Phone"><button class="btn alt" onclick="addWorker()">Add Worker</button><p id="workerMsg" class="status"></p></div><div class="panel"><table class="table"><tr><th>Name</th><th>Role</th><th>Phone</th><th>Action</th></tr>${data.map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.role)}</td><td>${esc(x.phone)}</td><td><button class="btn light" onclick="deleteWorker('${x.id}')">Delete</button></td></tr>`).join('')||'<tr><td colspan="4" class="empty">No workers</td></tr>'}</table></div>`}catch(e){adminMain.innerHTML=`<div class="panel">${esc(e.message)}</div>`}}
+async function addWorker(){try{await col('workers').add({name:wn.value.trim(),role:wr.value.trim(),phone:wp.value.trim(),createdAt:firebase.firestore.FieldValue.serverTimestamp()});workersAdmin()}catch(e){workerMsg.textContent=e.message}}
+async function deleteWorker(id){if(!confirm('Delete worker?'))return;try{await col('workers').doc(id).delete();workersAdmin()}catch(e){alert(e.message)}}
+async function paymentsAdmin(){try{const [workers,payments]=await Promise.all([getDocs('workers'),getDocs('worker_payments')]);const opts=workers.map(w=>`<option value="${w.id}">${esc(w.name)}${w.role?' — '+esc(w.role):''}</option>`).join('');adminMain.innerHTML=`<div class="top"><h1>Payments</h1></div><div class="panel"><select id="payWorker"><option value="">Select Worker</option>${opts}</select><input id="payAmount" type="number" min="0" placeholder="Amount"><input id="payDate" type="date"><select id="payMethod"><option>Cash</option><option>UPI</option><option>Bank Transfer</option></select><button class="btn alt" onclick="addPayment()">Add Payment</button><p id="payMsg" class="status"></p></div><div class="panel"><table class="table"><tr><th>Worker ID</th><th>Amount</th><th>Date</th><th>Method</th><th>Action</th></tr>${payments.map(x=>`<tr><td>${esc(workers.find(w=>w.id===x.worker_id)?.name||x.worker_id)}</td><td>₹${esc(x.amount)}</td><td>${esc(x.payment_date)}</td><td>${esc(x.payment_method)}</td><td><button class="btn light" onclick="deletePayment('${x.id}')">Delete</button></td></tr>`).join('')||'<tr><td colspan="5" class="empty">No payments</td></tr>'}</table></div>`}catch(e){adminMain.innerHTML=`<div class="panel">${esc(e.message)}</div>`}}
+async function addPayment(){if(!payWorker.value||!payAmount.value){payMsg.textContent='Worker aur amount select karein.';return}try{await col('worker_payments').add({worker_id:payWorker.value,amount:Number(payAmount.value),payment_date:payDate.value||new Date().toISOString().slice(0,10),payment_method:payMethod.value,createdAt:firebase.firestore.FieldValue.serverTimestamp()});paymentsAdmin()}catch(e){payMsg.textContent=e.message}}
+async function deletePayment(id){if(!confirm('Delete payment?'))return;try{await col('worker_payments').doc(id).delete();paymentsAdmin()}catch(e){alert(e.message)}}
+auth.onAuthStateChanged(async user=>{if(user){try{if(await isManager(user))showAdmin();else{await auth.signOut();publicLoad()}}catch(e){console.error(e);publicLoad()}}else publicLoad()});
 </script>
 </body>
 </html>
